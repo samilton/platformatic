@@ -59,7 +59,16 @@
             subPackages = [ "cmd/myapp" ];
           };
 
+          # A streamed image: $out is an executable that writes the tarball to
+          # stdout. See lib/mk-container.nix for how to load it.
           example-go-container = self.packages.${system}.example-go.container;
+        };
+
+        # `nix run .#example-go-container | docker load`. Without this, nix run
+        # looks for $out/bin/... and the container package has no bin/.
+        apps.example-go-container = {
+          type = "app";
+          program = "${self.packages.${system}.example-go-container}";
         };
 
         checks = {
@@ -72,6 +81,18 @@
 
           # Fails if the example image closure violates policy.
           example-go-policy = self.packages.${system}.example-go-container;
+
+          # Fails if the container output stops being a loadable image -- e.g.
+          # if a wrapper around mkContainer swallows the stream.
+          example-go-image = pkgs.runCommand "example-go-image-check"
+            { nativeBuildInputs = [ pkgs.gnutar pkgs.jq ]; }
+            ''
+              ${self.packages.${system}.example-go-container} > image.tar
+              tar -tf image.tar | grep -q 'manifest\.json'
+              tar -xOf image.tar --wildcards '*manifest.json' \
+                | jq -e '.[0].RepoTags | index("hello:0.1.0")' > /dev/null
+              touch $out
+            '';
         };
 
         devShells.default = pkgs.mkShell {

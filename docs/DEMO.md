@@ -33,6 +33,17 @@ curl localhost:8080 | jq
 
 The response includes `uid`. It is 65532, not 0.
 
+Say the `./result` out loud, because it is the one thing people get wrong. The
+image is *streamed*: `result` is an executable that writes the tarball to
+stdout, so nothing lands in the store twice. `nix build ... | docker load`
+prints nothing to stdout and docker answers `unsupported file format`. The
+equivalent one-liners:
+
+```bash
+nix run .#example-go-container | docker load        # apps output
+nix build .#example-go-container.tarball && docker load -i result
+```
+
 ## 3. Show that there is nothing in there
 
 ```bash
