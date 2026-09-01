@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "flakes": [
+    {
+      "from": { "type": "indirect", "id": "platform" },
+      "to": {
+        "type": "github",
+        "owner": "platform",
+        "repo": "flake",
+        "host": "ghe.corp"
+      }
+    },
+    {
+      "from": { "type": "indirect", "id": "nixpkgs" },
+      "to": {
+        "type": "github",
+        "owner": "platform",
+        "repo": "flake",
+        "host": "ghe.corp",
+        "dir": "compat/nixpkgs"
+      }
+    }
+  ]
+}

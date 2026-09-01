@@ -1,0 +1,66 @@
+{
+  "_comment": [
+    "Lands at data.packages because OPA maps --data directories onto the",
+    "document tree by path, and only files named data.json merge cleanly.",
+    "Regenerate 'allowed' from the pinned Determinate Secure Packages release:",
+    "  https://install.determinate.systems/secure-packages/secure/:revision/:file",
+    "and bump it in the same PR as the nixpkgs input."
+  ],
+
+  "enforce_allowlist": false,
+
+  "denied": [
+    "libreoffice",
+    "libreoffice-still",
+    "firefox",
+    "chromium",
+    "thunderbird",
+    "vlc",
+    "gimp",
+    "wireshark",
+    "nmap",
+    "socat",
+    "netcat",
+    "netcat-gnu",
+    "netcat-openbsd"
+  ],
+
+  "shell_providers": [
+    "bash",
+    "bash-interactive",
+    "bash-5.2p37",
+    "dash",
+    "zsh",
+    "busybox",
+    "toybox",
+    "coreutils",
+    "coreutils-full"
+  ],
+
+  "forbidden_licenses": [
+    "AGPL-3.0-only",
+    "AGPL-3.0-or-later",
+    "SSPL-1.0",
+    "BUSL-1.1",
+    "Elastic-2.0"
+  ],
+
+  "allowed": [
+    "glibc",
+    "openssl",
+    "zlib",
+    "libstdc++",
+    "gcc",
+    "cacert",
+    "nss-cacert",
+    "libunwind",
+    "icu4c",
+    "lttng-ust",
+    "numactl",
+    "xz",
+    "attr",
+    "acl",
+    "libidn2",
+    "libunistring"
+  ]
+}
