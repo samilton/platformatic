@@ -33,7 +33,21 @@
           port = 8080;
         };
 
+        # The image is streamed, not a tarball on disk. Load it with either:
+        #   nix run .#container | docker load
+        #   nix build .#container.tarball && docker load -i result
+        # `nix build .#container | docker load` writes nothing to stdout and
+        # docker reports "unsupported file format".
         container = default.container;
+      });
+
+      # Makes `nix run .#container` work: the package's $out is a bare
+      # executable, so nix run cannot find it without an explicit app.
+      apps = forAllSystems ({ system, ... }: {
+        container = {
+          type = "app";
+          program = "${self.packages.${system}.container}";
+        };
       });
 
       devShells = forAllSystems ({ pkgs, ... }: {

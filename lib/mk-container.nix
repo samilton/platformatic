@@ -3,6 +3,18 @@
 # Builds a minimal, non-root OCI image and runs the package policy against its
 # closure. Consumers should never call dockerTools directly -- going through
 # this function is what makes the policy check unavoidable.
+#
+# The result is a *streamed* image, the same shape dockerTools.streamLayeredImage
+# produces: $out is an executable that writes an image tarball to stdout, not a
+# tarball itself. So:
+#
+#   nix run   .#container | docker load          # via the flake's apps output
+#   nix build .#container && ./result | docker load
+#   nix build .#container.tarball && docker load -i result
+#
+# `nix build .#container | docker load` cannot work -- nix build writes a
+# `result` symlink and nothing at all to stdout, so docker sees an empty stream
+# and reports "unsupported file format".
 { name
 , tag ? "latest"
 , entrypoint            # list, e.g. [ "/bin/myapp" ]
@@ -66,7 +78,34 @@ let
       } // labels;
     };
   };
+
+  # `docker load -i` and every registry-push tool that takes a file want a
+  # tarball on disk, not a stream. Built by running the *gated* stream script,
+  # so this is not a way around the policy check.
+  mkTarball = streamed: pkgs.runCommand "${name}-${tag}.tar.gz"
+    {
+      nativeBuildInputs = [ pkgs.gzip ];
+      inherit (image) imageName;
+      passthru = { inherit (image) imageTag; isExe = false; };
+    } ''
+    ${streamed} | gzip -n > $out
+  '';
+
+  # Attributes streamLayeredImage sets that callers (and skopeo/dive wrappers)
+  # rely on. The policy wrapper is a different derivation, so they have to be
+  # carried across it explicitly or they are silently lost.
+  streamPassthru = {
+    inherit (image) imageName imageTag;
+    isExe = true;
+  };
+
+  checked = checkClosure {
+    inherit name;
+    rootPaths = allContents;
+    drv = image;
+    passthru = streamPassthru // { tarball = mkTarball checked; };
+  };
 in
 if enforcePolicy
-then checkClosure { inherit name; rootPaths = allContents; passthru = image; }
-else image
+then checked
+else image // streamPassthru // { tarball = mkTarball image; }

@@ -6,7 +6,11 @@
 # denies, the image does not build. A CI lint can be skipped; this cannot,
 # short of not using mkContainer at all -- and then the pipeline will not
 # sign the result, so admission control rejects it.
-{ name, rootPaths, passthru }:
+#
+# `drv` is the artifact being gated. On success $out is a symlink to it, so the
+# checked derivation is a drop-in replacement for the unchecked one -- callers
+# pass the extra attributes they want to survive the wrapper via `passthru`.
+{ name, rootPaths, drv, passthru ? { } }:
 
 let
   bom = sbom { inherit name rootPaths; };
@@ -16,7 +20,7 @@ pkgs.runCommand "${name}-policy-checked"
   nativeBuildInputs = [ pkgs.open-policy-agent pkgs.jq ];
   inherit bom;
   # Keep the SBOM addressable for cosign attestation in CI.
-  passthru = { sbom = bom; unchecked = passthru; };
+  passthru = passthru // { sbom = bom; unchecked = drv; };
 } ''
   echo "==> evaluating data.platform.image.deny against $bom"
 
@@ -39,5 +43,5 @@ pkgs.runCommand "${name}-policy-checked"
   fi
 
   echo "==> policy OK"
-  ln -s ${passthru} $out
+  ln -s ${drv} $out
 ''

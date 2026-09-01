@@ -67,6 +67,24 @@ correctly, which is most of the battle — `follows` is opt-in by the downstream
 author, so `nix run platform#lockfile-lint -- flake.lock` in consumer CI is
 what turns the convention into a check.
 
+### Loading the image
+
+`mkContainer` returns a **streamed** image, the shape
+`dockerTools.streamLayeredImage` produces: `$out` is an executable that writes
+an image tarball to stdout, so a multi-hundred-megabyte tarball never gets
+written to the store alongside the closure it was built from.
+
+```bash
+nix run .#container | docker load                  # apps output
+nix build .#container && ./result | docker load    # same thing, two steps
+nix build .#container.tarball && docker load -i result
+```
+
+`nix build .#container | docker load` is the one that does not work: `nix build`
+writes a `result` symlink and nothing to stdout, so docker reads an empty stream
+and reports `unsupported file format`. `.tarball` is built by running the
+policy-checked stream, so it is not a way around the closure gate.
+
 ## Where this is a sketch
 
 - The nixpkgs input points at upstream `nixos-25.05`, not Determinate Secure
